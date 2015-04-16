@@ -67,7 +67,9 @@ public class ZebraBluetoothPrinter extends CordovaPlugin {
                         // Close the insecure connection to release resources.
                         thePrinterConn.close();
                         callbackContext.success("Stampa terminata");
-                    }
+                    } else {
+						callbackContext.error("printer is not ready");
+					}
                 } catch (Exception e) {
                     // Handle communications error here.
                     callbackContext.error(e.getMessage());
@@ -76,29 +78,22 @@ public class ZebraBluetoothPrinter extends CordovaPlugin {
         }).start();
     }
 
-    private Boolean isPrinterReady(Connection connection) {
+    private Boolean isPrinterReady(Connection connection) throws ConnectionException, ZebraPrinterLanguageUnknownException {
         Boolean isOK = false;
-        try {
-            connection.open();
-            // Creates a ZebraPrinter object to use Zebra specific functionality like getCurrentStatus()
-            ZebraPrinter printer = ZebraPrinterFactory.getInstance(connection);
-
-            PrinterStatus printerStatus = printer.getCurrentStatus();
-            if (printerStatus.isReadyToPrint) {
-                isOK = true;
-            } else if (printerStatus.isPaused) {
-                System.out.println("Cannot Print because the printer is paused.");
-            } else if (printerStatus.isHeadOpen) {
-                System.out.println("Cannot Print because the printer media door is open.");
-            } else if (printerStatus.isPaperOut) {
-                System.out.println("Cannot Print because the paper is out.");
-            } else {
-                System.out.println("Cannot Print.");
-            }
-        } catch (ConnectionException e) {
-            e.printStackTrace();
-        } catch (ZebraPrinterLanguageUnknownException ex) {
-            ex.printStackTrace();
+        connection.open();
+        // Creates a ZebraPrinter object to use Zebra specific functionality like getCurrentStatus()
+        ZebraPrinter printer = ZebraPrinterFactory.getInstance(connection);
+        PrinterStatus printerStatus = printer.getCurrentStatus();
+        if (printerStatus.isReadyToPrint) {
+            isOK = true;
+        } else if (printerStatus.isPaused) {
+            throw new ConnectionException("Cannot Print because the printer is paused.");
+        } else if (printerStatus.isHeadOpen) {
+            throw new ConnectionException("Cannot Print because the printer media door is open.");
+        } else if (printerStatus.isPaperOut) {
+            throw new ConnectionException("Cannot Print because the paper is out.");
+        } else {
+            throw new ConnectionException("Cannot Print.");
         }
         return isOK;
     }
